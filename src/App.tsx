@@ -1,26 +1,66 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { useEffect, useMemo, useState } from 'react'
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+import { NotesEdition } from './components/NotesEdition'
+import { NotesList } from './components/NotesList'
+import { TagList } from './components/TagList'
+
+import { getNotes } from './api/getNotes'
+import { getTags } from './helpers/getTags'
+import { INotes } from './interfaces'
+
+import { Container } from './styles/App.styled'
+
+export const App = () => {
+	const [notes, setNotes] = useState<INotes[] | []>([])
+	const [tags, setTags] = useState<string[]>([])
+	const [tagActive, setTagActive] = useState<string>('Notes')
+	const [activeIdNote, setActiveIdNote] = useState<number | null>(null)
+	const [activeNode, setActiveNode] = useState<INotes | null>(null)
+
+	useEffect(() => {
+		getNotes.all().then(resp => {
+			setNotes(resp.data)
+			setTags(['Notes', ...getTags(resp.data)])
+		})
+	}, [])
+
+	useMemo(() => {
+		setActiveNode([...notes].filter(note => note.id === activeIdNote)[0])
+	}, [notes, activeIdNote])
+
+	const editingNote = (newNote: INotes) =>
+		setNotes([newNote, ...notes.filter(note => note !== activeNode)])
+
+	const addNewNote = (newNote: INotes) => {
+		setNotes([newNote, ...notes])
+		setActiveIdNote(newNote.id)
+	}
+
+	const remove = (id: number) => {
+		setNotes([...notes].filter(note => note.id !== id))
+	}
+
+	return (
+		<Container>
+			<TagList
+				tags={tags}
+				tagActive={tagActive}
+				setTagActive={setTagActive}
+				setActiveIdNote={setActiveIdNote}
+			/>
+			<NotesList
+				notes={notes}
+				tag={tagActive}
+				activeNote={activeIdNote}
+				setActiveNote={setActiveIdNote}
+				addNewNote={addNewNote}
+			/>
+
+			<NotesEdition
+				note={activeNode}
+				editingNote={editingNote}
+				remove={remove}
+			/>
+		</Container>
+	)
 }
-
-export default App;
